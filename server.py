@@ -30,6 +30,7 @@ load_dotenv()  # must run before importing fm_client, which reads env at import 
 
 import uvicorn
 from mcp.server.fastmcp import FastMCP
+from mcp.server.transport_security import TransportSecuritySettings
 from starlette.applications import Starlette
 from starlette.requests import Request
 from starlette.responses import JSONResponse, Response
@@ -40,6 +41,12 @@ from fm_client import get_client
 MCP_BEARER_TOKEN = os.environ.get("MCP_BEARER_TOKEN", "")
 HOST = os.environ.get("MCP_HOST", "0.0.0.0")
 PORT = int(os.environ.get("MCP_PORT", "8420"))
+# Public hostname(s) this server is reached through (e.g. via Caddy/nginx in
+# front of it). The MCP SDK's DNS-rebinding protection validates the Host/
+# Origin headers against this list — without it, every request coming
+# through a reverse proxy gets rejected with "Invalid Host header", since
+# the proxy's hostname won't match 127.0.0.1/localhost by default.
+PUBLIC_HOSTNAMES = [h.strip() for h in os.environ.get("MCP_PUBLIC_HOSTNAMES", "").split(",") if h.strip()]
 
 mcp = FastMCP(
     "filemaker-crm",
@@ -52,6 +59,11 @@ mcp = FastMCP(
     host=HOST,
     port=PORT,
     stateless_http=True,
+    transport_security=TransportSecuritySettings(
+        enable_dns_rebinding_protection=True,
+        allowed_hosts=["127.0.0.1", "localhost", *PUBLIC_HOSTNAMES],
+        allowed_origins=[f"https://{h}" for h in PUBLIC_HOSTNAMES] + ["http://127.0.0.1", "http://localhost"],
+    ),
 )
 
 
