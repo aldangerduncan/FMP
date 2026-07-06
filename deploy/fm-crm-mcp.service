@@ -1,0 +1,19 @@
+[Unit]
+Description=FileMaker CRM MCP server (read-only, Streamable HTTP)
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/root/fm-crm-mcp
+EnvironmentFile=/root/fm-crm-mcp/.env
+ExecStart=/root/fm-crm-mcp/venv/bin/python3 /root/fm-crm-mcp/server.py
+Restart=on-failure
+RestartSec=5
+
+# The server only needs to be reachable from Caddy on localhost.
+# MCP_HOST in .env should be 127.0.0.1, not 0.0.0.0, so it's never
+# directly exposed — Caddy is the only thing that talks to it.
+
+[Install]
+WantedBy=multi-user.target

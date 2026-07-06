@@ -1,0 +1,12 @@
+# Append this block to /etc/caddy/Caddyfile on the VPS, then:
+#   systemctl reload caddy
+#
+# Caddy issues and renews the Let's Encrypt certificate for this hostname
+# automatically — no certbot, no manual cert config. sslip.io is a free
+# wildcard DNS service: <anything>.<ip>.sslip.io resolves to <ip>, so this
+# works with no domain purchase or DNS setup at all (same pattern already
+# used for the "prospector" service on this box).
+
+fm-crm-mcp.74.208.125.60.sslip.io {
+    reverse_proxy 127.0.0.1:8420
+}
