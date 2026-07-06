@@ -108,8 +108,14 @@ async def get_company(company_name: str, limit: int = 50) -> dict:
 
 
 class BearerAuthMiddleware:
-    """Rejects any HTTP request that doesn't present the configured bearer
-    token. Applied in front of the whole MCP ASGI app."""
+    """Rejects any HTTP request that doesn't present the configured token,
+    either as `Authorization: Bearer <token>` (for curl / testing) or as a
+    `?token=<token>` query parameter (for Claude's custom connector UI,
+    which as of 2026-07 only supports OAuth or no-auth for remote MCP
+    servers — there's no field to paste a static bearer token into. Putting
+    the token in the URL itself is the pragmatic workaround: paste
+    `https://<host>/mcp?token=<token>` as the connector URL and nothing
+    else needs configuring). Applied in front of the whole MCP ASGI app."""
 
     def __init__(self, app: ASGIApp, token: str) -> None:
         self.app = app
@@ -122,9 +128,12 @@ class BearerAuthMiddleware:
 
         request = Request(scope, receive)
         auth_header = request.headers.get("authorization", "")
+        query_token = request.query_params.get("token", "")
         expected = f"Bearer {self.token}"
 
-        if not self.token or auth_header != expected:
+        authorized = self.token and (auth_header == expected or query_token == self.token)
+
+        if not authorized:
             response: Response = JSONResponse(
                 {"error": "unauthorized"}, status_code=401
             )
