@@ -76,7 +76,10 @@ Encrypt cert for it automatically.
    `.env.example`, filling in `FM_USER`/`FM_PASSWORD` (same shared FileMaker
    login already used by MeetingPrepTool) and a freshly generated
    `MCP_BEARER_TOKEN`. Leave `MCP_HOST=127.0.0.1` — Caddy is the only thing
-   that should reach this process directly.
+   that should reach this process directly. Also set
+   `MCP_PUBLIC_HOSTNAMES=fm-crm-mcp.74.208.125.60.sslip.io` — the MCP SDK's
+   DNS-rebinding protection rejects every request with "Invalid Host header"
+   unless the proxy's hostname is explicitly allowlisted here.
 
 3. **Install the systemd service:**
    ```bash
@@ -107,6 +110,13 @@ Encrypt cert for it automatically.
 Add it as a custom remote MCP connector using:
 - URL: `https://fm-crm-mcp.74.208.125.60.sslip.io/mcp`
 - Auth: Bearer token — the `MCP_BEARER_TOKEN` value from `.env`
+
+## Troubleshooting
+
+- **"Invalid Host header" on every request:** `MCP_PUBLIC_HOSTNAMES` in
+  `.env` doesn't include the hostname you're reaching the server through.
+  The MCP SDK validates the `Host`/`Origin` headers against an allowlist
+  (DNS-rebinding protection) — add the hostname, restart the service.
 
 ## Operational notes
 
