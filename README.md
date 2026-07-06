@@ -29,10 +29,12 @@ the contact record.
   named set of fields per tool, so responses stay compact.
 - `server.py` — a `FastMCP` server (Python MCP SDK) exposing the three
   tools above over **Streamable HTTP**, wrapped in a small ASGI middleware
-  that requires a static `Authorization: Bearer <token>` header on every
-  request. This is a deliberately simple auth model (one shared secret, no
-  OAuth server) — appropriate for a single-user personal tool, not a
-  multi-tenant service.
+  that requires a shared-secret token on every request, accepted either as
+  an `Authorization: Bearer <token>` header (curl/testing) or a
+  `?token=<token>` query parameter (Claude's connector UI — see
+  "Connecting Claude to it" below). This is a deliberately simple auth
+  model (one shared secret, no OAuth server) — appropriate for a
+  single-user personal tool, not a multi-tenant service.
 
 ## Local setup
 
@@ -107,9 +109,19 @@ Encrypt cert for it automatically.
 
 ## Connecting Claude to it
 
-Add it as a custom remote MCP connector using:
-- URL: `https://fm-crm-mcp.74.208.125.60.sslip.io/mcp`
-- Auth: Bearer token — the `MCP_BEARER_TOKEN` value from `.env`
+As of 2026-07, Claude's custom connector UI only supports OAuth or no-auth
+for remote MCP servers — there's no field to paste a static bearer token
+into (confirmed in Anthropic's own connector auth docs: `static_bearer` is
+"not yet supported"). So the token goes in the URL instead, as a query
+param — the server's `BearerAuthMiddleware` accepts either
+`Authorization: Bearer <token>` (for curl/testing) or `?token=<token>`.
+
+In Claude: Customize → Connectors → Add custom connector, give it a name,
+and paste this as the URL (leave Advanced settings / OAuth fields blank):
+
+```
+https://fm-crm-mcp.74.208.125.60.sslip.io/mcp?token=<MCP_BEARER_TOKEN value>
+```
 
 ## Troubleshooting
 
@@ -117,6 +129,9 @@ Add it as a custom remote MCP connector using:
   `.env` doesn't include the hostname you're reaching the server through.
   The MCP SDK validates the `Host`/`Origin` headers against an allowlist
   (DNS-rebinding protection) — add the hostname, restart the service.
+- **Connector added but every call fails / connects with no auth:**
+  Claude's connector UI has no static bearer token field — you must put
+  the token in the URL as `?token=<token>`, not in Advanced settings.
 
 ## Operational notes
 
